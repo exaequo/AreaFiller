@@ -3,6 +3,8 @@
 #include <fstream>
 #define _CRT_SECURE_NO_WARNINGS
 #include <cstdio>
+#include <iostream>
+#include <sstream>
 
 //std::map<std::string, class Texture> TgaBuffer::textures = std::map<std::string, class Texture>{};
 //std::map<int, std::string> TgaBuffer::materialsToTextureNames = std::map<int, std::string>{};
@@ -26,8 +28,10 @@ void TgaBuffer::drawRect(const std::pair<int, int>& start, const std::pair<int, 
 
 
 
-bool TgaBuffer::save(const std::string filename, const int wWidth, const int wHeight) const
+bool TgaBuffer::save(const std::string filename) const
 {
+	int wWidth = endx, wHeight = endy;
+
 	unsigned int* newColorBuffer = computeImage(wWidth, wHeight);
 	
 	unsigned short header[9] =
@@ -53,6 +57,12 @@ bool TgaBuffer::save(const std::string filename, const int wWidth, const int wHe
 
 	delete[] newColorBuffer;
 	return true;
+}
+
+void TgaBuffer::setEndResolution(const std::pair<int, int>& res)
+{
+	endx = res.first;
+	endy = res.second;
 }
 
 unsigned int * TgaBuffer::computeImage(const int wWidth, const int wHeight) const
@@ -92,18 +102,29 @@ int TgaBuffer::at(int x, int y)
 }
 
 
-void TgaBuffer::fillArea(const std::pair<int, int>& p, unsigned int fillColor)
+void TgaBuffer::fillArea(const std::pair<int, int>& p, unsigned int fillColor, int step)
 {
 	unsigned int color = colorBuffer[at(p.first, p.second)];
+	this->step = step;
 
 	fill(p.first, p.second, fillColor, color);
+
 }
 
 void TgaBuffer::fill(int x, int y, unsigned int col, unsigned int checkCol)
 {
 	if (coordCheck(x, y)) {
 		if (colorBuffer[at(x, y)] == checkCol) {
+			static int counter = 0;
 			colorBuffer[at(x, y)] = col;
+
+			if (++counter % step == 0) {
+				std::stringstream s{};
+				s << "fill" << counter << ".tga";
+				save(s.str());
+				//std::cin.get();
+			}
+			//std::cout << ++counter << ",";
 
 			fill(x + 1, y, col, checkCol);
 			fill(x - 1, y, col, checkCol);
