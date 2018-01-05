@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <iostream>
 #include <sstream>
-
+#include <stack>
 //std::map<std::string, class Texture> TgaBuffer::textures = std::map<std::string, class Texture>{};
 //std::map<int, std::string> TgaBuffer::materialsToTextureNames = std::map<int, std::string>{};
 
@@ -101,6 +101,11 @@ int TgaBuffer::at(int x, int y)
 	return y*width + x;
 }
 
+int TgaBuffer::at(const std::pair<int, int>& p)
+{
+	return at(p.first, p.second);
+}
+
 
 void TgaBuffer::fillArea(const std::pair<int, int>& p, unsigned int fillColor, int step)
 {
@@ -111,20 +116,61 @@ void TgaBuffer::fillArea(const std::pair<int, int>& p, unsigned int fillColor, i
 
 }
 
+void TgaBuffer::fillAreaSmith(const std::pair<int, int>& p, unsigned int fillColor, int step)
+{
+	unsigned int workColor = colorBuffer[at(p.first, p.second)];
+	std::stack<Line> st{};
+	this->step = step;
+
+	st.push(findLine(p, workColor));
+		
+	do {
+		Line line = st.top();
+		st.pop();
+
+		if (colorBuffer[at(line.x, line.y)] == workColor)
+		{
+			//std::cout << "Line: (" << line.x << "," << line.y << ") " << line.len << "\n";
+
+			for (int i = line.x; i < line.x + line.len; ++i)
+			{
+				fillColorAt({ i, line.y }, fillColor);
+			}
+
+			if (line.y + 1 < height)
+			{
+				lookForLinesFromPoint({ line.x, line.y + 1 }, workColor, line.len, st);
+			}
+
+			if (line.y - 1 >= 0)
+			{
+				//std::cout << "Parent line: (" << line.x << ", " << line.y << ")\n";
+				lookForLinesFromPoint({ line.x, line.y - 1 }, workColor, line.len, st);
+			}
+		}
+
+		
+	} while (!st.empty());
+
+}
+
+
+
 void TgaBuffer::fill(int x, int y, unsigned int col, unsigned int checkCol)
 {
 	if (coordCheck(x, y)) {
 		if (colorBuffer[at(x, y)] == checkCol) {
-			static int counter = 0;
-			colorBuffer[at(x, y)] = col;
+			//static int counter = 0;
+			//colorBuffer[at(x, y)] = col;
 
-			if (++counter % step == 0) {
-				std::stringstream s{};
-				s << "fill" << counter << ".tga";
-				save(s.str());
-				//std::cin.get();
-			}
-			//std::cout << ++counter << ",";
+			//if (++counter % step == 0) {
+			//	std::stringstream s{};
+			//	s << "fill" << counter << ".tga";
+			//	save(s.str());
+			//	//std::cin.get();
+			//}
+			
+			fillColorAt({ x,y }, col);
 
 			fill(x + 1, y, col, checkCol);
 			fill(x - 1, y, col, checkCol);
@@ -135,6 +181,64 @@ void TgaBuffer::fill(int x, int y, unsigned int col, unsigned int checkCol)
 	}
 
 }
+
+void TgaBuffer::fillColorAt(const std::pair<int, int>& p, unsigned int color)
+{
+	static int counter = 0;
+	colorBuffer[at(p.first, p.second)] = color;
+
+	if (++counter % step == 0) {
+		std::stringstream s{};
+		s << "result/fill" << counter << ".tga";
+		save(s.str());
+		//std::cin.get();
+	}
+}
+
+Line TgaBuffer::findLine(const std::pair<int, int>& p, unsigned int workColor)
+{
+	int i = 1;
+	int j = 1;
+
+	//std::cout << "Work: " << workColor << ", at0: " << colorBuffer[at(p.first - i, p.second)] << "\n";
+
+
+	while (p.first - i >= 0 && colorBuffer[at(p.first - i, p.second)] == workColor)
+	{
+		++i;
+	}
+	--i;
+
+	while (p.first - i + j < width && colorBuffer[at(p.first - i + j, p.second)] == workColor)
+	{
+		++j;
+	}
+
+	return Line{ p.first - i, p.second, j };
+}
+
+void TgaBuffer::lookForLinesFromPoint(const std::pair<int, int>& p, unsigned int color, int len, std::stack<Line>& st)
+{
+	//std::cout << "Point start: " << p.first<<","<<p.second << "\n";
+	bool waitForNext = true;
+	for (int i = 0; i < len; ++i)
+	{
+		if (colorBuffer[at(p.first + i, p.second)] == color)
+		{
+			if (waitForNext)
+			{
+				st.push(findLine({ p.first + i, p.second }, color));
+				waitForNext = false;
+			}
+		}
+		else
+		{
+			waitForNext = true;
+		}
+	}
+}
+
+
 
 
 
