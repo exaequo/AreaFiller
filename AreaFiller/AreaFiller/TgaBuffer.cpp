@@ -9,6 +9,33 @@
 //std::map<std::string, class Texture> TgaBuffer::textures = std::map<std::string, class Texture>{};
 //std::map<int, std::string> TgaBuffer::materialsToTextureNames = std::map<int, std::string>{};
 
+TgaBuffer::TgaBuffer(std::string filename)
+{
+	unsigned short header[9] =
+	{
+		0x0000, 0x0002, 0x0000, 0x0000, 0x0000, 0x0000,
+		0x0100, 0x0100, 0x0820
+	};
+	FILE *f;
+	fopen_s(&f, filename.c_str(), "rb+");
+	
+	fread(header, sizeof(unsigned short), 9, f);
+	
+	width = header[6];
+	height = header[7];
+	len = width * height;
+	colorBuffer = new unsigned int[len];
+	
+	fread(colorBuffer, sizeof(unsigned int), len, f);
+	
+	for (int i = 0; i < len; ++i)
+	{
+		colorBuffer[i] &= 0x00ffffff;
+	}
+
+	fclose(f);
+}
+
 TgaBuffer::~TgaBuffer()
 {
 }

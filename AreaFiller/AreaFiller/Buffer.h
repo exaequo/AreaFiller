@@ -2,6 +2,7 @@
 class Buffer
 {
 public:
+	Buffer():Buffer(0,0){}
 	Buffer(int width, int height);
 	~Buffer();
 	Buffer(Buffer&) = delete;

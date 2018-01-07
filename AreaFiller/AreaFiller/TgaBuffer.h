@@ -13,6 +13,8 @@ class TgaBuffer :
 {
 public:
 	TgaBuffer(int width, int height) : Buffer(width, height) {};
+	TgaBuffer(std::string fileName);
+
 	~TgaBuffer();
 
 	void drawRect(const std::pair<int, int>& start, const std::pair<int, int>& end, unsigned int color);
